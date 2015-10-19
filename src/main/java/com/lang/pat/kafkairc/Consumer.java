@@ -5,17 +5,24 @@
  */
 package com.lang.pat.kafkairc;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import kafka.consumer.ConsumerConfig;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 /**
  *
@@ -54,14 +61,6 @@ public class Consumer implements Runnable {
     return new ConsumerConfig(props);
   }
 
-  public int AddChannel(String ChannelName) {
-    return 0;
-  }
-
-  public int RemoveChannel(String ChannelName) {
-    return 0;
-  }
-
   public void shutdown() {
     if (consumer != null) {
       consumer.shutdown();
@@ -78,20 +77,39 @@ public class Consumer implements Runnable {
     }
   }
 
-  public void consume() {
+  public void consume() throws ParseException {
     ConsumerIterator<byte[], byte[]> it = m_stream.iterator();
+    JSONParser parse = new JSONParser();
+    SimpleDateFormat formatDate = new SimpleDateFormat("yy-MM-dd HH:mm:ss");
     while (it.hasNext() && listen) {
-      if (ClientMain.ChannelList.contains(Topic)) {
-	System.out.println("[" + Topic + "] " + new String(it.next().message()));
-	System.out.print("> ");
-      } else {
-	listen = false;
-      }
+        if (ClientMain.ChannelList.contains(Topic)) {
+            JSONObject JSONMessage = (JSONObject) parse.parse(new String(it.next().message()));
+
+            Date sendDat = new Date();
+            sendDat.setTime((long) JSONMessage.get("timestamp"));
+            System.out.println("[" + Topic + "] "
+                  + "[" + JSONMessage.get("username")
+                  + "] " + JSONMessage.get("message")
+                  + " || " + formatDate.format(sendDat));
+
+            if (JSONMessage.get("username").toString().equals(ClientMain.USERNAME)) {
+                  if (!JSONMessage.get("token").toString().equals(ClientMain.token)) {
+                      System.out.print("! Duplicate username, please change to avoid conflict!");
+                  }
+            }
+            System.out.print("> ");
+        } else {
+          listen = false;
+        }
     }
   }
 
   @Override
   public void run() {
-    consume();
+      try {
+          consume();
+      } catch (ParseException ex) {
+          Logger.getLogger(Consumer.class.getName()).log(Level.SEVERE, null, ex);
+      }
   }
 }
