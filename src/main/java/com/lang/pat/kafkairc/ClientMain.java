@@ -164,10 +164,16 @@ public class ClientMain {
 
     public static void main(String[] args) {
 	  final ClientMain clientmain = new ClientMain();
-	  if (args.length != 0) {
+	  if (args.length == 1) {
 		System.out.println("# Set location of server according to first parameter as " + args[0]);
 		HOSTNAME = args[0];
 	  }
+          else if (args.length == 2) {
+                System.out.println("# Set location of server according to first parameter as " + args[0]);
+		HOSTNAME = args[0];
+                System.out.println("# Set port of server according to second parameter as " + args[1]);
+		PORT = Integer.getInteger(args[1]);
+          }
 	  Scanner input = new Scanner(System.in);
 
 	  generateUname();
