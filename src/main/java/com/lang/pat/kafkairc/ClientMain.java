@@ -42,7 +42,7 @@ public class ClientMain {
 	  System.out.println("* Init consumer threadpool...");
           RejectedExecutionHandlerImpl rejectionHandler = new RejectedExecutionHandlerImpl();        
 	  ThreadFactory threadFactory = Executors.defaultThreadFactory();
-	  executorPool = new ThreadPoolExecutor(10, 14, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(10), threadFactory, rejectionHandler);
+	  executorPool = new ThreadPoolExecutor(5, 10, 100, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(1), threadFactory, rejectionHandler);
 	  executorPool.allowCoreThreadTimeOut(true);
 	  
 	  System.out.println("* Consumer pool initialized successfully...");
@@ -86,7 +86,7 @@ public class ClientMain {
 
 	  ClientMain.ChannelList.add(Channel);
 	  executorPool.execute(new Consumer(Channel));
-	  
+	  producer.send(USERNAME + " has joined channel " + Channel + " !", Channel);
 	  return 0;
     }
 
@@ -94,10 +94,11 @@ public class ClientMain {
 	  for (String item : ChannelList) {
 		if (item.equals(Channel)) {
 		    ClientMain.ChannelList.remove(Channel);
+                    producer.send(USERNAME + " has leaved channel " + Channel + " !", Channel);
+                    
 		    return 0;
 		}
 	  }
-	  
 	  return 1;
     }
 
@@ -170,21 +171,6 @@ public class ClientMain {
 	  Scanner input = new Scanner(System.in);
 
 	  generateUname();
-//
-//	  Runnable consumerThread;
-//	  consumerThread = new Runnable() {
-//		public void run() {
-//		    try {
-//			  while (!exit) {
-//				Thread.sleep(1000);
-//				clientmain.consumer.consume();
-//			  }
-//		    } catch (Exception E) {
-//			  E.printStackTrace();
-//		    }
-//		}
-//	  };
-//	  new Thread(consumerThread).start();
 
 	  while (!exit) {
 		System.out.print("> ");
@@ -219,15 +205,19 @@ public class ClientMain {
 			  } else {
 				chnName = resSplit[1];
 			  }
-
-			  res = clientmain.JoinChannel(chnName);
-			  if (res == 0) {
-				System.out.println("# User " + USERNAME + " has entered channel " + chnName);
-			  } else if (res == 1) {
-				System.out.println("! User " + USERNAME + " already entered channel " + chnName + "!");
-			  } else {
-				System.out.println("! User " + USERNAME + " failed to enter channel " + chnName + "!");
-			  }
+                          if (ChannelList.size() < 10){
+                                res = clientmain.JoinChannel(chnName);
+                                if (res == 0) {
+                                      System.out.println("# User " + USERNAME + " has entered channel " + chnName);
+                                } else if (res == 1) {
+                                      System.out.println("! User " + USERNAME + " already entered channel " + chnName + "!");
+                                } else {
+                                      System.out.println("! User " + USERNAME + " failed to enter channel " + chnName + "!");
+                                }
+                          } else {
+                              System.out.println("! User " + USERNAME + " has too many channel ! Please exit one channel to join another one !");
+                          }
+			  
 			  break;
 
 		    case "/LEAVE":

@@ -6,6 +6,9 @@
 package com.lang.pat.kafkairc;
 
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -37,7 +40,13 @@ public class Producer {
     
     public void send(String Message, String Channel){
         ProducerRecord<String,String> producerRecord = new ProducerRecord<String,String>(Channel, key, Message);
-        producer.send(producerRecord);
+        try {
+            producer.send(producerRecord).get();
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Producer.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (ExecutionException ex) {
+            Logger.getLogger(Producer.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     @Override

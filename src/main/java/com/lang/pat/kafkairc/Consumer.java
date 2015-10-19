@@ -77,29 +77,35 @@ public class Consumer implements Runnable {
     }
   }
 
-  public void consume() throws ParseException {
+  public void consume() throws ParseException, InterruptedException, Throwable {
     ConsumerIterator<byte[], byte[]> it = m_stream.iterator();
     JSONParser parse = new JSONParser();
     SimpleDateFormat formatDate = new SimpleDateFormat("yy-MM-dd HH:mm:ss");
     while (it.hasNext() && listen) {
         if (ClientMain.ChannelList.contains(Topic)) {
-            JSONObject JSONMessage = (JSONObject) parse.parse(new String(it.next().message()));
+            String temp = new String(it.next().message());
+            if (!temp.contains("{")){
+                System.out.println(temp);
+            } else {
+                JSONObject JSONMessage = (JSONObject) parse.parse(temp);
 
-            Date sendDat = new Date();
-            sendDat.setTime((long) JSONMessage.get("timestamp"));
-            System.out.println("[" + Topic + "] "
-                  + "[" + JSONMessage.get("username")
-                  + "] " + JSONMessage.get("message")
-                  + " || " + formatDate.format(sendDat));
+                Date sendDat = new Date();
+                sendDat.setTime((long) JSONMessage.get("timestamp"));
+                System.out.println("[" + Topic + "] "
+                      + "[" + JSONMessage.get("username")
+                      + "] " + JSONMessage.get("message")
+                      + " || " + formatDate.format(sendDat));
 
-            if (JSONMessage.get("username").toString().equals(ClientMain.USERNAME)) {
-                  if (!JSONMessage.get("token").toString().equals(ClientMain.token)) {
-                      System.out.print("! Duplicate username, please change to avoid conflict!");
-                  }
+                if (JSONMessage.get("username").toString().equals(ClientMain.USERNAME)) {
+                      if (!JSONMessage.get("token").toString().equals(ClientMain.token)) {
+                          System.out.print("! Duplicate username, please change to avoid conflict!");
+                      }
+                }
             }
             System.out.print("> ");
         } else {
           listen = false;
+          break;
         }
     }
   }
@@ -109,6 +115,10 @@ public class Consumer implements Runnable {
       try {
           consume();
       } catch (ParseException ex) {
+          Logger.getLogger(Consumer.class.getName()).log(Level.SEVERE, null, ex);
+      } catch (InterruptedException ex) {
+          Logger.getLogger(Consumer.class.getName()).log(Level.SEVERE, null, ex);
+      } catch (Throwable ex) {
           Logger.getLogger(Consumer.class.getName()).log(Level.SEVERE, null, ex);
       }
   }
