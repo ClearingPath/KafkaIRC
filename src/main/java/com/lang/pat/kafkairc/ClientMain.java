@@ -9,6 +9,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.json.simple.JSONObject;
@@ -20,21 +25,27 @@ import org.json.simple.JSONObject;
 public class ClientMain {
 
     public static String HOSTNAME = "localhost";
-    public static int PORT = 5672;
+    public static int PORT = 2181;
     public static ArrayList<String> ChannelList = new ArrayList<>();
     public static String USERNAME;
     public static String QUEUENAME;
     public static String EXCHANGE_NAME = "lang.pat.rabbitIRC";
     public static boolean exit = false;
     public static String token;
+    public static ThreadPoolExecutor executorPool;
 
+    
     private Consumer consumer;
     private Producer producer;
 
     public ClientMain() {
-	  System.out.println("* Init consumer...");
-	  consumer = new Consumer();
-	  System.out.println("* Consumer initialized successfully...");
+	  System.out.println("* Init consumer threadpool...");
+          RejectedExecutionHandlerImpl rejectionHandler = new RejectedExecutionHandlerImpl();        
+	  ThreadFactory threadFactory = Executors.defaultThreadFactory();
+	  executorPool = new ThreadPoolExecutor(10, 14, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(10), threadFactory, rejectionHandler);
+	  executorPool.allowCoreThreadTimeOut(true);
+	  
+	  System.out.println("* Consumer pool initialized successfully...");
 	  System.out.println("* Init producer...");
 	  producer = new Producer();
 	  System.out.println("* Producer initialized successfully...");
@@ -74,7 +85,8 @@ public class ClientMain {
 	  }
 
 	  ClientMain.ChannelList.add(Channel);
-	  consumer.AddChannel(Channel);
+	  executorPool.execute(new Consumer(Channel));
+	  
 	  return 0;
     }
 
@@ -82,10 +94,10 @@ public class ClientMain {
 	  for (String item : ChannelList) {
 		if (item.equals(Channel)) {
 		    ClientMain.ChannelList.remove(Channel);
-		    consumer.RemoveChannel(Channel);
 		    return 0;
 		}
 	  }
+	  
 	  return 1;
     }
 
@@ -129,6 +141,7 @@ public class ClientMain {
     }
 
     public static void Exit() {
+//	  consumer.shutdown();
 	  System.exit(0);
     }
 
@@ -157,21 +170,21 @@ public class ClientMain {
 	  Scanner input = new Scanner(System.in);
 
 	  generateUname();
-
-	  Runnable consumerThread;
-	  consumerThread = new Runnable() {
-		public void run() {
-		    try {
-			  while (!exit) {
-				Thread.sleep(1000);
-				clientmain.consumer.consume();
-			  }
-		    } catch (Exception E) {
-			  E.printStackTrace();
-		    }
-		}
-	  };
-	  new Thread(consumerThread).start();
+//
+//	  Runnable consumerThread;
+//	  consumerThread = new Runnable() {
+//		public void run() {
+//		    try {
+//			  while (!exit) {
+//				Thread.sleep(1000);
+//				clientmain.consumer.consume();
+//			  }
+//		    } catch (Exception E) {
+//			  E.printStackTrace();
+//		    }
+//		}
+//	  };
+//	  new Thread(consumerThread).start();
 
 	  while (!exit) {
 		System.out.print("> ");
